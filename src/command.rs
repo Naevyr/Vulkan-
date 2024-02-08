@@ -1,7 +1,7 @@
 
 use super::app_data::AppData;
 use super::queue_family::QueueFamilyIndices;
-use super::shader::VERTICES;
+use super::shader::INDICES;
 
 use anyhow:: Result;
 use vulkanalia::prelude::v1_0::*;
@@ -91,7 +91,9 @@ pub unsafe fn create_command_buffers(device: &Device, data: &mut AppData) -> Res
         device.cmd_begin_render_pass(*command_buffer, &info, vk::SubpassContents::INLINE);
         device.cmd_bind_pipeline(*command_buffer, vk::PipelineBindPoint::GRAPHICS, data.pipeline);
         device.cmd_bind_vertex_buffers(*command_buffer, 0, &[data.vertex_buffer], &[0]);
-        device.cmd_draw(*command_buffer, VERTICES.len() as u32, 1, 0, 0);
+        device.cmd_bind_index_buffer(*command_buffer, data.index_buffer, 0, vk::IndexType::UINT16);
+        
+        device.cmd_draw_indexed(*command_buffer, INDICES.len() as u32, 1, 0, 0, 0);
         device.cmd_end_render_pass(*command_buffer);
 
         device.end_command_buffer(*command_buffer)?;

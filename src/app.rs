@@ -10,7 +10,7 @@ use super::debug::VALIDATION_ENABLED;
 use super::debug::VALIDATION_LAYER;
 use super::PORTABILITY_MACOS_VERSION;
 use super::debug::debug_callback;
-use super::shader::create_vertex_buffer;
+use super::shader::{create_vertex_buffer,create_index_buffer};
 
 
 
@@ -65,6 +65,7 @@ impl App {
         create_command_pools(&instance, &device, &mut data)?;
 
         create_vertex_buffer(&instance, &device, &mut data)?;
+        create_index_buffer(&instance, &device, &mut data)?;
         create_command_buffers(&device, &mut data)?;
         
         create_sync_objects(&device, &mut data)?;
@@ -177,9 +178,10 @@ impl App {
             .iter()
             .for_each(|s| self.device.destroy_semaphore(*s, None));
             
-        self.device.free_memory(self.data.vertex_buffer_memory, None);
         self.device.destroy_buffer(self.data.vertex_buffer, None);
-            
+        self.device.free_memory(self.data.vertex_buffer_memory, None);
+        self.device.destroy_buffer(self.data.index_buffer, None);
+        self.device.free_memory(self.data.index_buffer_memory, None);
 
         self.device.destroy_command_pool(self.data.command_pool, None);
         self.device.destroy_command_pool(self.data.command_pool_transfer, None);
