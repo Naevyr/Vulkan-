@@ -1,4 +1,6 @@
 
+
+
 use super::app_data::AppData;
 use super::syncronization::MAX_FRAMES_IN_FLIGHT;
 use super::device::{create_logical_device,pick_physical_device};
@@ -10,9 +12,12 @@ use super::debug::VALIDATION_ENABLED;
 use super::debug::VALIDATION_LAYER;
 use super::PORTABILITY_MACOS_VERSION;
 use super::debug::debug_callback;
-use super::shader::{create_vertex_buffer,create_index_buffer};
+use super::shader::{update_uniform_buffer,create_vertex_buffer,create_index_buffer,create_descriptor_set_layout,create_uniform_buffers,create_descriptor_pool,create_descriptor_sets};
 
 
+use std::mem::size_of;
+use std::ptr::copy_nonoverlapping as memcpy;
+use std::time::Instant;
 
 use anyhow::{anyhow, Result};
 use log::*;
@@ -32,6 +37,7 @@ use std::collections::HashSet;
 
 
 
+
 // Our Vulkan app.
 #[derive(Clone, Debug)]
 pub struct App {
@@ -43,7 +49,7 @@ pub struct App {
     frame: usize,
 
     pub resized: bool,
-    
+    start: Instant,
 }
 
 impl App {
@@ -60,20 +66,28 @@ impl App {
         create_swapchain(window, &instance, &device, &mut data)?;
         create_swapchain_image_views(&device, &mut data)?;
         create_render_pass(&instance, &device, &mut data)?;
+
+        create_descriptor_set_layout(&device, &mut data)?;
         create_pipeline(&device, &mut data)?;
         create_framebuffers(&device, &mut data)?;
         create_command_pools(&instance, &device, &mut data)?;
 
         create_vertex_buffer(&instance, &device, &mut data)?;
         create_index_buffer(&instance, &device, &mut data)?;
+        create_uniform_buffers(&instance, &device, &mut data)?;
+        create_descriptor_pool(&device, &mut data)?;
+        create_descriptor_sets(&device, &mut data)?;
+
+
         create_command_buffers(&device, &mut data)?;
+
         
         create_sync_objects(&device, &mut data)?;
 
 
         
 
-        Ok(Self { entry, instance, data, device , frame : 0, resized : false })
+        Ok(Self { entry, instance, data, device , frame : 0, resized : false , start: Instant::now()})
         
     }
 
@@ -114,6 +128,8 @@ impl App {
         self.data.images_in_flight[image_index as usize] =
             self.data.in_flight_fences[self.frame];
 
+            
+        update_uniform_buffer(&self.start, &self.device, &mut self.data, image_index)?;
 
         let wait_semaphores = &[self.data.image_available_semaphores[self.frame]];
         let wait_stages = &[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
@@ -125,7 +141,7 @@ impl App {
             .command_buffers(command_buffers)
             .signal_semaphores(signal_semaphores);
     
-        self.device.reset_fences(&[self.data.in_flight_fences[self.frame]])?;
+        
 
         
         self.device.queue_submit(
@@ -166,7 +182,10 @@ impl App {
 
         self.destroy_swapchain();
     
-        
+ 
+
+
+
         self.data.in_flight_fences
             .iter()
             .for_each(|f| self.device.destroy_fence(*f, None));
@@ -177,12 +196,15 @@ impl App {
         self.data.image_available_semaphores
             .iter()
             .for_each(|s| self.device.destroy_semaphore(*s, None));
-            
+        
+        
+        self.device.destroy_descriptor_set_layout(self.data.descriptor_set_layout, None);
+
+
         self.device.destroy_buffer(self.data.vertex_buffer, None);
         self.device.free_memory(self.data.vertex_buffer_memory, None);
         self.device.destroy_buffer(self.data.index_buffer, None);
         self.device.free_memory(self.data.index_buffer_memory, None);
-
         self.device.destroy_command_pool(self.data.command_pool, None);
         self.device.destroy_command_pool(self.data.command_pool_transfer, None);
         self.device.destroy_device(None);
@@ -199,36 +221,38 @@ impl App {
 
     unsafe fn recreate_swapchain(&mut self, window: &Window) -> Result<()> {
         self.device.device_wait_idle()?;
+        self.destroy_swapchain();
         create_swapchain(window, &self.instance, &self.device, &mut self.data)?;
         create_swapchain_image_views(&self.device, &mut self.data)?;
         create_render_pass(&self.instance, &self.device, &mut self.data)?;
         create_pipeline(&self.device, &mut self.data)?;
         create_framebuffers(&self.device, &mut self.data)?;
+        create_uniform_buffers(&self.instance, &self.device, &mut self.data)?;
+        create_descriptor_pool(&self.device, &mut self.data)?;
+        create_descriptor_sets(&self.device, &mut self.data)?;
         create_command_buffers(&self.device, &mut self.data)?;
-        self.destroy_swapchain();
-
-
-        self.data
-            .images_in_flight
-            .resize(self.data.swapchain_images.len(), vk::Fence::null());
+        self.data.images_in_flight.resize(self.data.swapchain_images.len(), vk::Fence::null());
         Ok(())
     }
 
 
     unsafe fn destroy_swapchain(&mut self) {
+
+
         self.device.free_command_buffers(self.data.command_pool, &self.data.command_buffers);
-        self.data.framebuffers
-            .iter()
-            .for_each(|f| self.device.destroy_framebuffer(*f, None));
+        self.device.destroy_descriptor_pool(self.data.descriptor_pool, None);
+        self.data.uniform_buffers_memory.iter().for_each(|m| self.device.free_memory(*m, None));
+        self.data.uniform_buffers.iter().for_each(|b| self.device.destroy_buffer(*b, None));
+        self.data.framebuffers.iter().for_each(|f| self.device.destroy_framebuffer(*f, None));
         self.device.destroy_pipeline(self.data.pipeline, None);
         self.device.destroy_pipeline_layout(self.data.pipeline_layout, None);
         self.device.destroy_render_pass(self.data.render_pass, None);
-        self.data.swapchain_image_views
-            .iter()
-            .for_each(|v| self.device.destroy_image_view(*v, None));
+        self.data.swapchain_image_views.iter().for_each(|v| self.device.destroy_image_view(*v, None));
         self.device.destroy_swapchain_khr(self.data.swapchain, None);
+        
     }
     
+   
 }
 
 
