@@ -11,6 +11,7 @@ mod buffer;
 mod command;
 mod debug;
 mod device;
+mod image;
 mod queue_family;
 mod pipeline;
 mod shader;

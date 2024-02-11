@@ -1,6 +1,7 @@
 
 
 
+
 use super::app_data::AppData;
 use super::syncronization::MAX_FRAMES_IN_FLIGHT;
 use super::device::{create_logical_device,pick_physical_device};
@@ -13,6 +14,7 @@ use super::debug::VALIDATION_LAYER;
 use super::PORTABILITY_MACOS_VERSION;
 use super::debug::debug_callback;
 use super::shader::{update_uniform_buffer,create_vertex_buffer,create_index_buffer,create_descriptor_set_layout,create_uniform_buffers,create_descriptor_pool,create_descriptor_sets};
+use super::image::create_texture_image;
 
 
 use std::time::Instant;
@@ -78,7 +80,7 @@ impl App {
 
 
         create_command_buffers(&device, &mut data)?;
-
+        create_texture_image(&instance, &device, &mut data)?;
         
         create_sync_objects(&device, &mut data)?;
 
@@ -198,7 +200,9 @@ impl App {
         
         self.device.destroy_descriptor_set_layout(self.data.descriptor_set_layout, None);
 
-
+        self.device.destroy_image(self.data.texture_image, None);
+        self.device.free_memory(self.data.texture_image_memory, None);
+        
         self.device.destroy_buffer(self.data.vertex_buffer, None);
         self.device.free_memory(self.data.vertex_buffer_memory, None);
         self.device.destroy_buffer(self.data.index_buffer, None);

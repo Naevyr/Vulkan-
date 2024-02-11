@@ -1,6 +1,8 @@
-use vulkanalia::{vk::{self, DeviceV1_0, Handle, HasBuilder, InstanceV1_0}, Device, Instance};
+use vulkanalia::{vk::{self, DeviceV1_0,  HasBuilder, InstanceV1_0}, Device, Instance};
 use anyhow::{anyhow, Result};
 
+
+use crate::command::{begin_single_time_commands, end_single_time_commands};
 
 use super::app_data::AppData;
 
@@ -38,7 +40,7 @@ pub unsafe fn create_buffer(
 }
 
 
-unsafe fn get_memory_type_index(
+pub unsafe fn get_memory_type_index(
     instance: &Instance,
     data: &AppData,
     properties: vk::MemoryPropertyFlags,
@@ -63,34 +65,60 @@ pub unsafe fn copy_buffer(
 ) -> Result<()> {
 
 
-    let info = vk::CommandBufferAllocateInfo::builder()
-    .level(vk::CommandBufferLevel::PRIMARY)
-    .command_pool(data.command_pool_transfer)
-    .command_buffer_count(1);
-
-    let command_buffer = device.allocate_command_buffers(&info)?[0];
-
-    let info = vk::CommandBufferBeginInfo::builder()
-        .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
-
-    device.begin_command_buffer(command_buffer, &info)?;
-
+    let command_buffer = begin_single_time_commands(device, data)?;
 
     let regions = vk::BufferCopy::builder().size(size);
     device.cmd_copy_buffer(command_buffer, source, destination, &[regions]);
 
-
-    device.end_command_buffer(command_buffer)?;
-
-
-    let command_buffers = &[command_buffer];
-    let info = vk::SubmitInfo::builder()
-        .command_buffers(command_buffers);
-
-    device.queue_submit(data.transfer_queue, &[info], vk::Fence::null())?;
-    device.queue_wait_idle(data.transfer_queue)?;
-
-    device.free_command_buffers(data.command_pool_transfer, &[command_buffer]);
+    end_single_time_commands(device, data, command_buffer)?;
 
     Ok(())
 }
+
+pub unsafe fn create_image(
+    instance: &Instance,
+    device: &Device,
+    data: &AppData,
+    width: u32,
+    height: u32,
+    format: vk::Format,
+    tiling: vk::ImageTiling,
+    usage: vk::ImageUsageFlags,
+    properties: vk::MemoryPropertyFlags,
+) -> Result<(vk::Image, vk::DeviceMemory)> {
+    let info = vk::ImageCreateInfo::builder()
+        .image_type(vk::ImageType::_2D)
+        .extent(vk::Extent3D {
+            width,
+            height,
+            depth: 1,
+        })
+        .mip_levels(1)
+        .array_layers(1)
+        .format(format)
+        .tiling(tiling)
+        .initial_layout(vk::ImageLayout::UNDEFINED)
+        .usage(usage)
+        .samples(vk::SampleCountFlags::_1)
+        .sharing_mode(vk::SharingMode::EXCLUSIVE);
+
+    let image = device.create_image(&info, None)?;
+
+    let requirements = device.get_image_memory_requirements(image);
+
+    let info = vk::MemoryAllocateInfo::builder()
+        .allocation_size(requirements.size)
+        .memory_type_index(get_memory_type_index(
+            instance,
+            data,
+            properties,
+            requirements,
+        )?);
+
+    let image_memory = device.allocate_memory(&info, None)?;
+
+    device.bind_image_memory(image, image_memory, 0)?;
+
+    Ok((image, image_memory))
+}
+
