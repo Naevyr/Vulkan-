@@ -1,10 +1,10 @@
 use vulkanalia::{vk::{self, DeviceV1_0, Handle, HasBuilder}, Device};
 
 
-use super::shader::Vertex;
-use super::app_data::AppData;
+use crate::shader::Vertex;
+use crate::app_data::AppData;
 
-use super::shader::create_shader_module;
+use crate::shader::create_shader_module;
 use anyhow::Result;
 
 

@@ -1,5 +1,5 @@
 
-use super::app_data::AppData;
+use crate::app_data::AppData;
 
 use anyhow::Result;
 use vulkanalia::{vk::{self, DeviceV1_0, Handle, HasBuilder}, Device};

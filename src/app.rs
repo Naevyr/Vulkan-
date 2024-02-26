@@ -1,20 +1,16 @@
-
-
-
-
-use super::app_data::AppData;
-use super::syncronization::MAX_FRAMES_IN_FLIGHT;
-use super::device::{create_logical_device,pick_physical_device};
-use super::swapchain::{create_swapchain,create_swapchain_image_views};
-use super::command::{create_command_buffers,create_command_pools,create_render_pass,create_framebuffers};
-use super::pipeline::create_pipeline;
-use super::syncronization::create_sync_objects;
-use super::debug::VALIDATION_ENABLED;
-use super::debug::VALIDATION_LAYER;
-use super::PORTABILITY_MACOS_VERSION;
-use super::debug::debug_callback;
-use super::shader::{update_uniform_buffer,create_vertex_buffer,create_index_buffer,create_descriptor_set_layout,create_uniform_buffers,create_descriptor_pool,create_descriptor_sets};
-use super::image::create_texture_image;
+use crate::app_data::AppData;
+use crate::syncronization::MAX_FRAMES_IN_FLIGHT;
+use crate::device::{create_logical_device,pick_physical_device};
+use crate::swapchain::{create_swapchain,create_swapchain_image_views};
+use crate::command::{create_command_buffers,create_command_pools,create_render_pass,create_framebuffers};
+use crate::pipeline::create_pipeline;
+use crate::syncronization::create_sync_objects;
+use crate::debug::VALIDATION_ENABLED;
+use crate::debug::VALIDATION_LAYER;
+use crate::PORTABILITY_MACOS_VERSION;
+use crate::debug::debug_callback;
+use crate::shader::{update_uniform_buffer,create_vertex_buffer,create_index_buffer,create_descriptor_set_layout,create_uniform_buffers,create_descriptor_pool,create_descriptor_sets};
+use crate::image::{create_texture_image,create_texture_image_view, create_texture_sampler};
 
 
 use std::time::Instant;
@@ -66,22 +62,20 @@ impl App {
         create_swapchain(window, &instance, &device, &mut data)?;
         create_swapchain_image_views(&device, &mut data)?;
         create_render_pass(&instance, &device, &mut data)?;
-
         create_descriptor_set_layout(&device, &mut data)?;
         create_pipeline(&device, &mut data)?;
         create_framebuffers(&device, &mut data)?;
         create_command_pools(&instance, &device, &mut data)?;
-
+        create_texture_image(&instance, &device, &mut data)?;
+        create_texture_image_view(&device, &mut data)?;
+        create_texture_sampler(&device, &mut data)?;
         create_vertex_buffer(&instance, &device, &mut data)?;
         create_index_buffer(&instance, &device, &mut data)?;
         create_uniform_buffers(&instance, &device, &mut data)?;
         create_descriptor_pool(&device, &mut data)?;
         create_descriptor_sets(&device, &mut data)?;
-
-
         create_command_buffers(&device, &mut data)?;
-        create_texture_image(&instance, &device, &mut data)?;
-        
+        create_sync_objects(&device, &mut data)?;
         create_sync_objects(&device, &mut data)?;
 
 
@@ -196,8 +190,10 @@ impl App {
         self.data.image_available_semaphores
             .iter()
             .for_each(|s| self.device.destroy_semaphore(*s, None));
-        
-        
+
+
+        self.device.destroy_sampler(self.data.texture_sampler, None);
+        self.device.destroy_image_view(self.data.texture_image_view, None);
         self.device.destroy_descriptor_set_layout(self.data.descriptor_set_layout, None);
 
         self.device.destroy_image(self.data.texture_image, None);

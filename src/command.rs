@@ -1,7 +1,7 @@
 
-use super::app_data::AppData;
-use super::queue_family::QueueFamilyIndices;
-use super::shader::INDICES;
+use crate::app_data::AppData;
+use crate::queue_family::QueueFamilyIndices;
+use crate::shader::INDICES;
 
 use anyhow:: Result;
 use vulkanalia::prelude::v1_0::*;

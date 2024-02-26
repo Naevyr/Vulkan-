@@ -7,9 +7,9 @@ use vulkanalia::{vk, Device, Instance};
 
 use crate::command::{begin_single_time_commands, end_single_time_commands};
 
-use super::buffer::{create_buffer,create_image};
+use crate::buffer::{create_buffer,create_image};
 
-use super::app_data::AppData;
+use crate::app_data::AppData;
 use anyhow::{anyhow,Result};
 
 
@@ -201,5 +201,63 @@ unsafe fn copy_buffer_to_image(
     );
     end_single_time_commands(device, data, command_buffer)?;
 
+    Ok(())
+}
+
+
+pub unsafe fn create_texture_image_view(device: &Device, data: &mut AppData) -> Result<()> {
+    data.texture_image_view = create_image_view(
+        device,
+        data.texture_image,
+        vk::Format::R8G8B8A8_SRGB,
+    )?;
+
+    Ok(())
+}
+
+pub unsafe fn create_image_view(
+    device: &Device,
+    image: vk::Image,
+    format: vk::Format,
+) -> Result<vk::ImageView> {
+    let subresource_range = vk::ImageSubresourceRange::builder()
+        .aspect_mask(vk::ImageAspectFlags::COLOR)
+        .base_mip_level(0)
+        .level_count(1)
+        .base_array_layer(0)
+        .layer_count(1);
+
+    let info = vk::ImageViewCreateInfo::builder()
+        .image(image)
+        .view_type(vk::ImageViewType::_2D)
+        .format(format)
+        .subresource_range(subresource_range);
+
+    Ok(device.create_image_view(&info, None)?)
+}
+
+pub unsafe fn create_texture_sampler(device: &Device, data: &mut AppData) -> Result<()> {
+
+    let info = vk::SamplerCreateInfo::builder()
+        .mag_filter(vk::Filter::LINEAR)
+        .min_filter(vk::Filter::LINEAR)
+        .address_mode_u(vk::SamplerAddressMode::REPEAT)
+        .address_mode_v(vk::SamplerAddressMode::REPEAT)
+        .address_mode_w(vk::SamplerAddressMode::REPEAT)
+        .anisotropy_enable(true)
+        .max_anisotropy(16.0)
+        .border_color(vk::BorderColor::INT_OPAQUE_BLACK)
+        .unnormalized_coordinates(false)
+        .compare_enable(false)
+        .compare_op(vk::CompareOp::ALWAYS)
+        .mipmap_mode(vk::SamplerMipmapMode::LINEAR)
+        .mip_lod_bias(0.0)
+        .min_lod(0.0)
+        .max_lod(0.0);
+
+    data.texture_sampler = device.create_sampler(&info, None)?;
+
+
+    
     Ok(())
 }

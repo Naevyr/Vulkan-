@@ -1,18 +1,18 @@
 
 use crate::SuitabilityError;
 
-use super::app_data::AppData;
+use crate::app_data::AppData;
 
-use super::swapchain::SwapchainSupport;
-use super::PORTABILITY_MACOS_VERSION;
-use super::debug::{VALIDATION_ENABLED,VALIDATION_LAYER};
+use crate::swapchain::SwapchainSupport;
+use crate::PORTABILITY_MACOS_VERSION;
+use crate::debug::{VALIDATION_ENABLED,VALIDATION_LAYER};
 
 use anyhow::{anyhow, Result};
 use log::*;
 use vulkanalia::vk::{DeviceV1_0, HasBuilder, InstanceV1_0};
 use vulkanalia::{vk, Instance,Entry,Device};
 
-use super::queue_family::QueueFamilyIndices;
+use crate::queue_family::QueueFamilyIndices;
 
 use std::collections::HashSet;
 
@@ -55,7 +55,9 @@ pub unsafe fn check_physical_device(
     if features.geometry_shader != vk::TRUE {
         return Err(anyhow!(SuitabilityError("Missing geometry shader support.")));
     }
-
+    if features.sampler_anisotropy != vk::TRUE {
+        return Err(anyhow!(SuitabilityError("No sampler anisotropy.")));
+    }
     QueueFamilyIndices::get(instance, data, physical_device)?;
 
     check_physical_device_extensions(instance, physical_device)?;
@@ -94,7 +96,8 @@ pub unsafe fn create_logical_device(
         extensions.push(vk::KHR_PORTABILITY_SUBSET_EXTENSION.name.as_ptr());
     }
 
-    let features = vk::PhysicalDeviceFeatures::builder();
+    let features = vk::PhysicalDeviceFeatures::builder()
+        .sampler_anisotropy(true);
 
     let indices = QueueFamilyIndices::get(instance, data, data.physical_device)?;
 

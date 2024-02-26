@@ -5,20 +5,20 @@ use vulkanalia::Instance;
 
 
 
-use super::SuitabilityError;
+use crate::SuitabilityError;
 
-use super::app_data::AppData;
+use crate::app_data::AppData;
 
 
 
 #[derive(Copy, Clone, Debug)]
-pub(super) struct QueueFamilyIndices {
-    pub(super) graphics: u32,
-    pub(super) transfer: u32,
-    pub(super) present: u32,
+pub(crate) struct QueueFamilyIndices {
+    pub(crate) graphics: u32,
+    pub(crate) transfer: u32,
+    pub(crate) present: u32,
 }
  impl QueueFamilyIndices {
-    pub(super) unsafe fn get(
+    pub(crate) unsafe fn get(
         instance: &Instance,
         data: &AppData,
         physical_device: vk::PhysicalDevice,

@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 
 use crate::command::{begin_single_time_commands, end_single_time_commands};
 
-use super::app_data::AppData;
+use crate::app_data::AppData;
 
 pub unsafe fn create_buffer(
     instance: &Instance,
