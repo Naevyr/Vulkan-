@@ -1,4 +1,5 @@
 use crate::app_data::AppData;
+use crate::mesh::load_model;
 use crate::syncronization::MAX_FRAMES_IN_FLIGHT;
 use crate::device::{create_logical_device,pick_physical_device};
 use crate::swapchain::{create_swapchain,create_swapchain_image_views};
@@ -70,6 +71,7 @@ impl App {
         create_texture_image(&instance, &device, &mut data)?;
         create_texture_image_view(&device, &mut data)?;
         create_texture_sampler(&device, &mut data)?;
+        load_model(&mut data)?;
         create_vertex_buffer(&instance, &device, &mut data)?;
         create_index_buffer(&instance, &device, &mut data)?;
         create_uniform_buffers(&instance, &device, &mut data)?;

@@ -1,7 +1,7 @@
 use vulkanalia::{vk::{self, DeviceV1_0, Handle, HasBuilder}, Device};
 
 
-use crate::shader::Vertex;
+use crate::mesh::Vertex;
 use crate::app_data::AppData;
 
 use crate::shader::create_shader_module;

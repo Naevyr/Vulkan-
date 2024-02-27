@@ -1,38 +1,15 @@
+use cgmath::{point3, vec3, Deg};
 use vulkanalia::{bytecode::Bytecode, vk::{self, DeviceV1_0, HasBuilder,  VertexInputBindingDescription}, Device, Instance};
 use anyhow:: Result;
 use std::{mem::size_of, time::Instant};
 
 
-use crate::buffer::{copy_buffer, create_buffer};
+use crate::{buffer::{copy_buffer, create_buffer}, mesh::{Mat4, Vertex}};
 
 use crate::app_data::AppData;
 
-use cgmath::{vec2, vec3, point3, Deg};
-type Mat4 = cgmath::Matrix4<f32>;
-type Vec2 = cgmath::Vector2<f32>;
-type Vec3 = cgmath::Vector3<f32>;
-
 
 use std::ptr::copy_nonoverlapping as memcpy;
-
-
-
-pub static VERTICES: [Vertex; 8] = [
-    Vertex::new(vec3(-0.5, -0.5, 0.0), vec3(1.0, 0.0, 0.0), vec2(1.0, 0.0)),
-    Vertex::new(vec3(0.5, -0.5, 0.0), vec3(0.0, 1.0, 0.0), vec2(0.0, 0.0)),
-    Vertex::new(vec3(0.5, 0.5, 0.0), vec3(0.0, 0.0, 1.0),vec2(0.0, 1.0)),
-    Vertex::new(vec3(-0.5, 0.5, 0.0), vec3(1.0, 1.0, 1.0), vec2(1.0, 1.0)),
-    Vertex::new(vec3(-0.5, -0.5, -0.5), vec3(1.0, 0.0, 0.0), vec2(1.0, 0.0)),
-    Vertex::new(vec3(0.5, -0.5,-0.5), vec3(0.0, 1.0, 0.0), vec2(0.0, 0.0)),
-    Vertex::new(vec3(0.5, 0.5, -0.5), vec3(0.0, 0.0, 1.0),vec2(0.0, 1.0)),
-    Vertex::new(vec3(-0.5, 0.5, -0.5), vec3(1.0, 1.0, 1.0), vec2(1.0, 1.0)),
-];
-
-
-pub const INDICES: &[u16] = &[
-    0, 1, 2, 2, 3, 0,
-    4, 5, 6, 6, 7, 4,
-];
 
 const CORRECTION : Mat4= Mat4::new(
     1.0,  0.0,       0.0, 0.0,
@@ -68,54 +45,6 @@ pub(crate) unsafe fn create_shader_module(
 
 
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct Vertex {
-    pos: Vec3,
-    color: Vec3,
-    tex_coord: Vec2,
-}
-
-impl Vertex {
-    const fn new(pos: Vec3, color: Vec3, tex_coord: Vec2) -> Self {
-        Self { pos, color, tex_coord}
-    }
-
-    pub fn binding_description() -> VertexInputBindingDescription {
-        vk::VertexInputBindingDescription::builder()
-            .binding(0)
-            .stride(size_of::<Vertex>() as u32)
-            .input_rate(vk::VertexInputRate::VERTEX)
-            .build()
-    }
-    pub fn attribute_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
-        let pos = vk::VertexInputAttributeDescription::builder()
-            .binding(0)
-            .location(0)
-            .format(vk::Format::R32G32B32_SFLOAT)
-            .offset(0)
-            .build();
-
-
-        let color = vk::VertexInputAttributeDescription::builder()
-            .binding(0)
-            .location(1)
-            .format(vk::Format::R32G32B32_SFLOAT)
-            .offset(size_of::<Vec3>() as u32)
-            .build();
-
-
-        let tex_coord = vk::VertexInputAttributeDescription::builder()
-            .binding(0)
-            .location(2)
-            .format(vk::Format::R32G32_SFLOAT)
-            .offset((size_of::<Vec2>() + size_of::<Vec3>()) as u32)
-            .build();
-
-
-        [pos,color,tex_coord]
-    }
-}
 
 
 pub unsafe fn create_vertex_buffer(
@@ -123,7 +52,7 @@ pub unsafe fn create_vertex_buffer(
     device: &Device,
     data: &mut AppData,
 ) -> Result<()> {
-    let size = (size_of::<Vertex>() * VERTICES.len()) as u64;
+    let size = (size_of::<Vertex>() * data.vertices.len()) as u64;
 
     let (staging_buffer, staging_buffer_memory) = create_buffer(
         instance, 
@@ -141,7 +70,7 @@ pub unsafe fn create_vertex_buffer(
         vk::MemoryMapFlags::empty(),
     )?;
 
-    memcpy(VERTICES.as_ptr(), memory.cast(), VERTICES.len());
+    memcpy( data.vertices.as_ptr(), memory.cast(),  data.vertices.len());
 
     device.unmap_memory(staging_buffer_memory);
 
@@ -172,7 +101,7 @@ pub unsafe fn create_index_buffer(
     device: &Device,
     data: &mut AppData,
 ) -> Result<()> {
-    let size = (size_of::<u16>() * INDICES.len()) as u64;
+    let size = (size_of::<u32>() * data.indices.len()) as u64;
 
     let (staging_buffer, staging_buffer_memory) = create_buffer(
         instance,
@@ -190,7 +119,7 @@ pub unsafe fn create_index_buffer(
         vk::MemoryMapFlags::empty(),
     )?;
 
-    memcpy(INDICES.as_ptr(), memory.cast(), INDICES.len());
+    memcpy(data.indices.as_ptr(), memory.cast(), data.indices.len());
 
     device.unmap_memory(staging_buffer_memory);
 

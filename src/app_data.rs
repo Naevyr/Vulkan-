@@ -1,5 +1,7 @@
 use vulkanalia::vk;
 
+use crate::mesh::Vertex;
+
 
 
 /// The Vulkan handles and associated properties used by our Vulkan app.
@@ -36,6 +38,9 @@ pub struct AppData {
     pub in_flight_fences: Vec<vk::Fence>,
     pub images_in_flight: Vec<vk::Fence>,
 
+
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<u32>,
     pub vertex_buffer: vk::Buffer,
     pub vertex_buffer_memory: vk::DeviceMemory,
     pub index_buffer: vk::Buffer,

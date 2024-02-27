@@ -17,7 +17,7 @@ mod pipeline;
 mod shader;
 mod swapchain;
 mod syncronization;
-
+mod mesh;
 
 use log::*;
 use thiserror::Error;
