@@ -68,16 +68,24 @@ pub unsafe fn create_pipeline(device: &Device, data: &mut AppData) -> Result<()>
         .rasterization_samples(vk::SampleCountFlags::_1);
         
 
+    let depth_stencil_state = vk::PipelineDepthStencilStateCreateInfo::builder()
+        .depth_test_enable(true)
+        .depth_write_enable(true)
+        .depth_compare_op(vk::CompareOp::LESS)
+        .depth_bounds_test_enable(false)
+        .stencil_test_enable(false);
+
+
+
+
+
+
+
     let attachment = vk::PipelineColorBlendAttachmentState::builder()
         .color_write_mask(vk::ColorComponentFlags::all())
-        .blend_enable(false)
-        .src_color_blend_factor(vk::BlendFactor::ONE)  // Optional
-        .dst_color_blend_factor(vk::BlendFactor::ZERO) // Optional
-        .color_blend_op(vk::BlendOp::ADD)              // Optional
-        .src_alpha_blend_factor(vk::BlendFactor::ONE)  // Optional
-        .dst_alpha_blend_factor(vk::BlendFactor::ZERO) // Optional
-        .alpha_blend_op(vk::BlendOp::ADD);             // Optional
-    
+        .blend_enable(false);
+
+
     let attachments = &[attachment];
     let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
         .logic_op_enable(false)
@@ -109,6 +117,7 @@ pub unsafe fn create_pipeline(device: &Device, data: &mut AppData) -> Result<()>
         .viewport_state(&viewport_state)
         .rasterization_state(&rasterization_state)
         .multisample_state(&multisample_state)
+        .depth_stencil_state(&depth_stencil_state)
         .color_blend_state(&color_blend_state)
         .layout(data.pipeline_layout)
         .render_pass(data.render_pass)

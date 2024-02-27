@@ -53,6 +53,10 @@ pub struct AppData {
     pub texture_image_view: vk::ImageView,
 
 
+    pub depth_image: vk::Image,
+    pub depth_image_memory: vk::DeviceMemory,
+    pub depth_image_view: vk::ImageView,
+
     pub texture_sampler: vk::Sampler,
 }
 

@@ -1,4 +1,4 @@
-use vulkanalia::{bytecode::Bytecode, vk::{self, DeviceV1_0, HasBuilder, VertexInputBindingDescription}, Device, Instance};
+use vulkanalia::{bytecode::Bytecode, vk::{self, DeviceV1_0, HasBuilder,  VertexInputBindingDescription}, Device, Instance};
 use anyhow:: Result;
 use std::{mem::size_of, time::Instant};
 
@@ -17,16 +17,30 @@ use std::ptr::copy_nonoverlapping as memcpy;
 
 
 
-pub static VERTICES: [Vertex; 4] = [
-    Vertex::new(vec2(-0.5, -0.5), vec3(1.0, 0.0, 0.0), vec2(1.0, 0.0)),
-    Vertex::new(vec2(0.5, -0.5), vec3(0.0, 1.0, 0.0), vec2(0.0, 0.0)),
-    Vertex::new(vec2(0.5, 0.5), vec3(0.0, 0.0, 1.0),vec2(0.0, 1.0)),
-    Vertex::new(vec2(-0.5, 0.5), vec3(1.0, 1.0, 1.0), vec2(1.0, 1.0)),
+pub static VERTICES: [Vertex; 8] = [
+    Vertex::new(vec3(-0.5, -0.5, 0.0), vec3(1.0, 0.0, 0.0), vec2(1.0, 0.0)),
+    Vertex::new(vec3(0.5, -0.5, 0.0), vec3(0.0, 1.0, 0.0), vec2(0.0, 0.0)),
+    Vertex::new(vec3(0.5, 0.5, 0.0), vec3(0.0, 0.0, 1.0),vec2(0.0, 1.0)),
+    Vertex::new(vec3(-0.5, 0.5, 0.0), vec3(1.0, 1.0, 1.0), vec2(1.0, 1.0)),
+    Vertex::new(vec3(-0.5, -0.5, -0.5), vec3(1.0, 0.0, 0.0), vec2(1.0, 0.0)),
+    Vertex::new(vec3(0.5, -0.5,-0.5), vec3(0.0, 1.0, 0.0), vec2(0.0, 0.0)),
+    Vertex::new(vec3(0.5, 0.5, -0.5), vec3(0.0, 0.0, 1.0),vec2(0.0, 1.0)),
+    Vertex::new(vec3(-0.5, 0.5, -0.5), vec3(1.0, 1.0, 1.0), vec2(1.0, 1.0)),
 ];
 
 
-pub const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
+pub const INDICES: &[u16] = &[
+    0, 1, 2, 2, 3, 0,
+    4, 5, 6, 6, 7, 4,
+];
 
+const CORRECTION : Mat4= Mat4::new(
+    1.0,  0.0,       0.0, 0.0,
+    // We're also flipping the Y-axis with this line's `-1.0`.
+    0.0, -1.0,       0.0, 0.0,
+    0.0,  0.0, 1.0 / 2.0, 0.0,
+    0.0,  0.0, 1.0 / 2.0, 1.0,
+);
 
 
 #[repr(C)]
@@ -57,18 +71,16 @@ pub(crate) unsafe fn create_shader_module(
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
-    pos: Vec2,
+    pos: Vec3,
     color: Vec3,
     tex_coord: Vec2,
 }
 
 impl Vertex {
-    const fn new(pos: Vec2, color: Vec3, tex_coord: Vec2) -> Self {
+    const fn new(pos: Vec3, color: Vec3, tex_coord: Vec2) -> Self {
         Self { pos, color, tex_coord}
     }
-}
 
-impl Vertex {
     pub fn binding_description() -> VertexInputBindingDescription {
         vk::VertexInputBindingDescription::builder()
             .binding(0)
@@ -80,7 +92,7 @@ impl Vertex {
         let pos = vk::VertexInputAttributeDescription::builder()
             .binding(0)
             .location(0)
-            .format(vk::Format::R32G32_SFLOAT)
+            .format(vk::Format::R32G32B32_SFLOAT)
             .offset(0)
             .build();
 
@@ -89,7 +101,7 @@ impl Vertex {
             .binding(0)
             .location(1)
             .format(vk::Format::R32G32B32_SFLOAT)
-            .offset(size_of::<Vec2>() as u32)
+            .offset(size_of::<Vec3>() as u32)
             .build();
 
 
@@ -114,7 +126,7 @@ pub unsafe fn create_vertex_buffer(
     let size = (size_of::<Vertex>() * VERTICES.len()) as u64;
 
     let (staging_buffer, staging_buffer_memory) = create_buffer(
-        instance,
+        instance, 
         device,
         data,
         size,
@@ -272,14 +284,14 @@ pub unsafe fn update_uniform_buffer(time: &Instant,device : &Device,data : &mut 
         vec3(0.0, 0.0, 1.0),
     );
 
-    let mut proj = cgmath::perspective(
+    let mut proj = CORRECTION * cgmath::perspective(
         Deg(45.0),
         data.swapchain_extent.width as f32 / data.swapchain_extent.height as f32,
         0.1,
         10.0,
     );
 
-    proj[1][1] *= -1.0;
+
     let ubo = UniformBufferObject { model, view, proj };
     let memory = device.map_memory(
         data.uniform_buffers_memory[image_index],
@@ -358,3 +370,4 @@ pub unsafe fn create_descriptor_sets(device: &Device, data: &mut AppData) -> Res
 
     Ok(())
 }
+

@@ -9,8 +9,8 @@ use crate::debug::VALIDATION_ENABLED;
 use crate::debug::VALIDATION_LAYER;
 use crate::PORTABILITY_MACOS_VERSION;
 use crate::debug::debug_callback;
-use crate::shader::{update_uniform_buffer,create_vertex_buffer,create_index_buffer,create_descriptor_set_layout,create_uniform_buffers,create_descriptor_pool,create_descriptor_sets};
-use crate::image::{create_texture_image,create_texture_image_view, create_texture_sampler};
+use crate::shader::{create_descriptor_pool, create_descriptor_set_layout, create_descriptor_sets, create_index_buffer, create_uniform_buffers, create_vertex_buffer, update_uniform_buffer};
+use crate::image::{create_depth_objects,create_texture_image,create_texture_image_view, create_texture_sampler};
 
 
 use std::time::Instant;
@@ -64,8 +64,9 @@ impl App {
         create_render_pass(&instance, &device, &mut data)?;
         create_descriptor_set_layout(&device, &mut data)?;
         create_pipeline(&device, &mut data)?;
-        create_framebuffers(&device, &mut data)?;
         create_command_pools(&instance, &device, &mut data)?;
+        create_depth_objects(&instance, &device, &mut data)?;
+        create_framebuffers(&device, &mut data)?;
         create_texture_image(&instance, &device, &mut data)?;
         create_texture_image_view(&device, &mut data)?;
         create_texture_sampler(&device, &mut data)?;
@@ -76,8 +77,6 @@ impl App {
         create_descriptor_sets(&device, &mut data)?;
         create_command_buffers(&device, &mut data)?;
         create_sync_objects(&device, &mut data)?;
-        create_sync_objects(&device, &mut data)?;
-
 
         
 
@@ -193,11 +192,12 @@ impl App {
 
 
         self.device.destroy_sampler(self.data.texture_sampler, None);
-        self.device.destroy_image_view(self.data.texture_image_view, None);
         self.device.destroy_descriptor_set_layout(self.data.descriptor_set_layout, None);
-
+        
         self.device.destroy_image(self.data.texture_image, None);
         self.device.free_memory(self.data.texture_image_memory, None);
+        self.device.destroy_image_view(self.data.texture_image_view, None);
+
         
         self.device.destroy_buffer(self.data.vertex_buffer, None);
         self.device.free_memory(self.data.vertex_buffer_memory, None);
@@ -224,6 +224,7 @@ impl App {
         create_swapchain_image_views(&self.device, &mut self.data)?;
         create_render_pass(&self.instance, &self.device, &mut self.data)?;
         create_pipeline(&self.device, &mut self.data)?;
+        create_depth_objects(&self.instance, &self.device, &mut self.data)?;
         create_framebuffers(&self.device, &mut self.data)?;
         create_uniform_buffers(&self.instance, &self.device, &mut self.data)?;
         create_descriptor_pool(&self.device, &mut self.data)?;
@@ -236,6 +237,10 @@ impl App {
 
     unsafe fn destroy_swapchain(&mut self) {
 
+
+        self.device.destroy_image(self.data.depth_image, None);
+        self.device.free_memory(self.data.depth_image_memory, None);
+        self.device.destroy_image_view(self.data.depth_image_view,None);
 
         self.device.free_command_buffers(self.data.command_pool, &self.data.command_buffers);
         self.device.destroy_descriptor_pool(self.data.descriptor_pool, None);
