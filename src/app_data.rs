@@ -52,7 +52,7 @@ pub struct AppData {
     pub descriptor_sets: Vec<vk::DescriptorSet>,
     
 
-
+    pub mip_levels: u32,
     pub texture_image: vk::Image,
     pub texture_image_memory: vk::DeviceMemory,
     pub texture_image_view: vk::ImageView,

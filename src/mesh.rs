@@ -9,7 +9,7 @@ use crate::app_data::AppData;
 use anyhow::{Result};
 
 
-use cgmath::{vec2, vec3, point3, Deg};
+use cgmath::{vec2, vec3};
 use vulkanalia::vk::{self, HasBuilder, VertexInputBindingDescription};
 pub type Mat4 = cgmath::Matrix4<f32>;
 pub type Vec2 = cgmath::Vector2<f32>;

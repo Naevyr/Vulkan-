@@ -1,5 +1,5 @@
 use cgmath::{point3, vec3, Deg};
-use vulkanalia::{bytecode::Bytecode, vk::{self, DeviceV1_0, HasBuilder,  VertexInputBindingDescription}, Device, Instance};
+use vulkanalia::{bytecode::Bytecode, vk::{self, DeviceV1_0, HasBuilder }, Device, Instance};
 use anyhow:: Result;
 use std::{mem::size_of, time::Instant};
 
@@ -213,7 +213,7 @@ pub unsafe fn update_uniform_buffer(time: &Instant,device : &Device,data : &mut 
         vec3(0.0, 0.0, 1.0),
     );
 
-    let mut proj = CORRECTION * cgmath::perspective(
+    let proj = CORRECTION * cgmath::perspective(
         Deg(45.0),
         data.swapchain_extent.width as f32 / data.swapchain_extent.height as f32,
         0.1,
