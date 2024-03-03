@@ -1,4 +1,5 @@
 
+use crate::msaa::get_max_msaa_samples;
 use crate::SuitabilityError;
 
 use crate::app_data::AppData;
@@ -28,6 +29,7 @@ pub unsafe fn pick_physical_device(instance: &Instance, data: &mut AppData) -> R
         } else {
             info!("Selected physical device (`{}`).", properties.device_name);
             data.physical_device = physical_device;
+            data.msaa_samples = get_max_msaa_samples(instance, data);
             return Ok(());
         }
     }

@@ -18,6 +18,8 @@ mod shader;
 mod swapchain;
 mod syncronization;
 mod mesh;
+mod msaa;
+
 
 use log::*;
 use thiserror::Error;

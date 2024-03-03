@@ -63,6 +63,9 @@ pub struct AppData {
     pub depth_image_view: vk::ImageView,
 
     pub texture_sampler: vk::Sampler,
+
+
+    pub msaa_samples : vk::SampleCountFlags,
 }
 
 
